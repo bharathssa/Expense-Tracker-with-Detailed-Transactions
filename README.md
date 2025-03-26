@@ -1,8 +1,5 @@
 # Expense-Tracker-with-Detailed-Transactions
 This Expense Tracker is a Streamlit app for managing shared expenses. Users can add participants, record expenses, and split costs equally, by specific persons, shared purchase, or manual split. It calculates who owes whom, allows editing, deleting, resetting, and supports PDF export. Ideal for trips and shared costs! 🚀
-# Expense Tracker with Detailed Transactions
-
-This Streamlit application is a powerful tool for managing shared expenses among groups, providing detailed breakdowns and flexible splitting options. It's designed to simplify the often complex task of figuring out who owes what after shared activities, trips, or purchases.
 
 ## Key Features
 
