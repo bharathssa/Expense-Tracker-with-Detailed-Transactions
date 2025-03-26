@@ -252,39 +252,63 @@ if transactions:
 
 # Display summary/conclusion
 st.subheader("📝 Summary")
-summary = []
+
+# Dictionary to track net balances (how much each person owes or is owed)
+balances = {}
+
 for exp in st.session_state["expenses"]:
     total_cost = exp["amount"]
-    participants = exp["participants"]
     split_type = exp["split_type"]
+    payer = exp["paid_by"]
+
     if split_type == "Equally":
-        share = total_cost / len(participants)
-        for p in participants:
-            if p != exp["paid_by"]:
-                summary.append(f"{p} owes {exp['paid_by']} ${round(share, 2)}")
+        share = total_cost / len(exp["participants"])
+        for p in exp["participants"]:
+            if p != payer:
+                balances[p] = balances.get(p, 0) - round(share, 2)
+                balances[payer] = balances.get(payer, 0) + round(share, 2)
+
     elif split_type == "Specific Person":
         specific_persons = exp["specific_persons"]
         share = total_cost / len(specific_persons)
         for specific_person in specific_persons:
-            summary.append(f"{specific_person} owes {exp['paid_by']} ${round(share, 2)}")
+            balances[specific_person] = balances.get(specific_person, 0) - round(share, 2)
+            balances[payer] = balances.get(payer, 0) + round(share, 2)
+
     elif split_type == "Manual Split":
         amounts_owed = exp["amounts_owed"]
         for p, amount in amounts_owed.items():
-            summary.append(f"{p} owes {exp['paid_by']} ${round(amount, 2)}")
+            if p != payer:
+                balances[p] = balances.get(p, 0) - round(amount, 2)
+                balances[payer] = balances.get(payer, 0) + round(amount, 2)
+
     elif split_type == "Shared Purchase":
         amounts_paid = exp["amounts_paid"]
         total_paid = sum(amounts_paid.values())
         if total_paid > 0:
-            for p in participants:
-                share = total_cost / len(participants)
-                diff = share - amounts_paid.get(p, 0)
+            for p in exp["participants"]:
+                share = total_cost / len(exp["participants"])
+                diff = round(share - amounts_paid.get(p, 0), 2)
                 if diff > 0:
-                    summary.append(f"{p} owes {exp['paid_by']} ${round(diff, 2)}")
-                elif diff < 0:
-                    summary.append(f"{p} is owed ${round(-diff, 2)} by {exp['paid_by']}")
+                    balances[p] = balances.get(p, 0) - diff
+                    balances[payer] = balances.get(payer, 0) + diff
 
-for line in summary:
-    st.write(line)
+# Generate final transactions based on balances
+final_transactions = []
+for person, amount in balances.items():
+    if amount < 0:  # This person owes money
+        for creditor, credit_amount in balances.items():
+            if credit_amount > 0:
+                settled_amount = min(abs(amount), credit_amount)
+                final_transactions.append(f"{person} owes {creditor} ${round(settled_amount, 2)}")
+                balances[person] += settled_amount
+                balances[creditor] -= settled_amount
+                if balances[person] == 0:
+                    break
+
+# Display final transactions
+for transaction in final_transactions:
+    st.write(transaction)
 
 # Button to clear all entries
 if st.button("Clear All Entries"):
